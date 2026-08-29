@@ -474,7 +474,7 @@ def download_and_unzip_archive():
                             # Show a beautiful, clean message that updates live
                             status_text.text(
                                 f"📥 Downloading 173 Hansard documents... "
-                                f"{int(percent * 100)}% complete | "
+                                f"            {int(percent * 100)}% complete | "
                                 f"Elapsed: {int(elapsed_time)}s | "
                                 f"Estimated remaining: {int(eta)}s"
                             )
@@ -502,27 +502,47 @@ def download_and_unzip_archive():
 download_and_unzip_archive()
 # -------------------------------------------------------------
 # Read and parse the downloaded Hansard files.
+# -------------------------------------------------------------
+# Read and parse the downloaded Hansard files.
 FOLDER_PATH = "./hansard_files"
-with st.spinner("🔄 Reading and parsing your 174 documents automatically... Please wait."):
-    quotes_database, total_records = process_all_files(FOLDER_PATH)
 
+# 1. Create clean placeholders instead of a heavy st.spinner
+status_text = st.empty()
+progress_bar = st.progress(0)
+
+status_text.text("Initializing document scan... Please wait.")
+start_time = time.time()
+
+# 2. Run your file processor 
+# Note: If process_all_files supports tracking, we can hook into it. 
+# For now, we track the elapsed time right after it finishes:
+quotes_database, total_records = process_all_files(FOLDER_PATH)
+
+elapsed_time = time.time() - start_time
+
+# Clear the progress bar layout now that it's done
+progress_bar.empty()
+status_text.empty()
+
+# 3. Handle errors if no files were processed
 if not quotes_database:
     st.error(f"Could not find any HTML files in {FOLDER_PATH}. Please check your folder structure.")
     st.stop()
 
-import time  # Make sure this is imported to handle the 2-second delay
-
-# 1. Create an empty container placeholder
+# 4. Create an empty container placeholder for the success message
 banner_placeholder = st.empty()
 
-# 2. Put your success alert message inside it
-banner_placeholder.success(f" Analyzing {total_records} speeches")
+# 5. Display the success message along with the exact parsing duration!
+banner_placeholder.success(
+    f"✅ Analyzing {total_records} speeches completed smoothly in {elapsed_time:.1f} seconds!"
+)
 
-# 3. Tell the app to wait for exactly 2 seconds
+# 6. Tell the app to wait for exactly 1 second, then wipe it clean
 time.sleep(1)
-
-# 4. Completely wipe the banner from the screen!
 banner_placeholder.empty()
+
+# --- UI SIDEBAR FILTER PANEL ---
+
 # --- UI SIDEBAR FILTER PANEL ---
 
 st.sidebar.header(" Filter Options")
