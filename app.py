@@ -419,35 +419,87 @@ def process_all_files(folder_path):
             }) 
     return mp_quotes, global_speech_id 
 
-import subprocess
-import shutil
+import zipfile
+import time
+import urllib.request
 
-# --- AUTOMATIC WEB CLOUD ARCHIVE EXTRACTOR ---
 @st.cache_resource
-def download_built_in_folder_from_drive():
+def download_and_unzip_archive():
+    zip_path = Path("hansard_files.zip")
     extract_folder = Path("./hansard_files")
     
-    # If the folder doesn't exist yet in the web cloud, fetch it from your Google Drive link!
+    # If the folder doesn't exist yet, fetch it from your secure Catbox upload link
     if not extract_folder.exists():
-        with st.spinner("🏛️ Connecting to Google Drive and downloading your 174 documents into cloud memory..."):
-            # This points directly to your unique Google Drive folder ID
-            folder_id = "1VqPvgALaYeB45buYePM9cYo_v2jTE9sk"
+        url = "https://files.catbox.moe/ab4mla.zip"
+        
+        try:
+            # Add a browser mask (User-Agent) so Catbox doesn't block the connection!
+            headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+            request_object = urllib.request.Request(url, headers=headers)
             
-            # Use gdown to clone your exact drive folder safely
-            try:
-                subprocess.run([
-                    "gdown", "--folder", 
-                    f"https://google.com{folder_id}", 
-                    "-O", "./hansard_files", 
-                    "--quiet"
-                ], check=True)
-            except Exception as e:
-                st.error(f"⚠️ Could not pull documents from Google Drive. Error detail: {e}")
-                st.stop()
+            # Open the URL to check the file size
+            with urllib.request.urlopen(request_object) as response:
+                # Get the total file size from the cloud server headers
+                total_size = int(response.headers.get('content-length', 0))
                 
-# Turn on the downloader engine right here
-download_built_in_folder_from_drive()
+                # Create clean placeholders in Streamlit for our text and progress bar
+                status_text = st.empty()
+                progress_bar = st.progress(0)
+                
+                start_time = time.time()
+                bytes_downloaded = 0
+                chunk_size = 1024 * 64  # Download 64 KB chunks at a time
+                
+                # Fetch and save the raw archive bytes smoothly with a timer
+                with open(zip_path, 'wb') as out_file:
+                    while True:
+                        chunk = response.read(chunk_size)
+                        if not chunk:
+                            break
+                        out_file.write(chunk)
+                        bytes_downloaded += len(chunk)
+                        
+                        # Calculate elapsed time and download progress percentages
+                        elapsed_time = time.time() - start_time
+                        
+                        if total_size > 0:
+                            percent = bytes_downloaded / total_size
+                            progress_bar.progress(percent)
+                            
+                            # Estimate the total time remaining (ETA)
+                            speed = bytes_downloaded / elapsed_time if elapsed_time > 0 else 1
+                            remaining_bytes = total_size - bytes_downloaded
+                            eta = remaining_bytes / speed
+                            
+                            # Show a beautiful, clean message that updates live
+                            status_text.text(
+                                f"📥 Downloading 173 Hansard documents... "
+                                f"{int(percent * 100)}% complete | "
+                                f"Elapsed: {int(elapsed_time)}s | "
+                                f"Estimated remaining: {int(eta)}s"
+                            )
+                        else:
+                            # Fallback text if the server doesn't provide a file size
+                            status_text.text(f"📥 Downloading... Saved {bytes_downloaded // 1024} KB (Elapsed: {int(elapsed_time)}s)")
 
+                # Clean up the status messages once download finishes successfully
+                status_text.text("📦 Unpacking zip files into memory...")
+                progress_bar.empty()
+                    
+                # Safely extract your 174 documents into web memory
+                with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                    zip_ref.extractall(".")
+                if zip_path.exists():
+                    os.remove(zip_path)
+                    
+                status_text.success(" 173 Hansard files successfully downloaded.")
+                
+        except Exception as e:
+            st.error(f"⚠️ Cloud file extraction sync failed. System error details: {e}")
+            st.stop()
+
+# Turn on the cloud file unpacking engine right here
+download_and_unzip_archive()
 # -------------------------------------------------------------
 # Read and parse the downloaded Hansard files.
 FOLDER_PATH = "./hansard_files"
@@ -713,7 +765,7 @@ with tab_analytics:
             eth_counts = df_analytics["Ethnicity"].value_counts()
             st.bar_chart(eth_counts)
             
-            st.write("### Gender Distribution Volume")
+            st.write("### Gender Distribution")
             gender_counts = df_analytics["Gender"].value_counts()
             st.bar_chart(gender_counts)
             
