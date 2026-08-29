@@ -419,16 +419,45 @@ def process_all_files(folder_path):
             }) 
     return mp_quotes, global_speech_id 
 
+import subprocess
+import shutil
 
-# Run parser automatically from the folder path
+# --- AUTOMATIC WEB CLOUD ARCHIVE EXTRACTOR ---
+@st.cache_resource
+def download_built_in_folder_from_drive():
+    extract_folder = Path("./hansard_files")
+    
+    # If the folder doesn't exist yet in the web cloud, fetch it from your Google Drive link!
+    if not extract_folder.exists():
+        with st.spinner("🏛️ Connecting to Google Drive and downloading your 174 documents into cloud memory..."):
+            # This points directly to your unique Google Drive folder ID
+            folder_id = "1VqPvgALaYeB45buYePM9cYo_v2jTE9sk"
+            
+            # Use gdown to clone your exact drive folder safely
+            try:
+                subprocess.run([
+                    "gdown", "--folder", 
+                    f"https://google.com{folder_id}", 
+                    "-O", "./hansard_files", 
+                    "--quiet"
+                ], check=True)
+            except Exception as e:
+                st.error(f"⚠️ Could not pull documents from Google Drive. Error detail: {e}")
+                st.stop()
+                
+# Turn on the downloader engine right here
+download_built_in_folder_from_drive()
+
+# -------------------------------------------------------------
+# Read and parse the downloaded Hansard files.
 FOLDER_PATH = "./hansard_files"
-
-with st.spinner(" Reading and parsing your 173 documents automatically... Please wait."):
+with st.spinner("🔄 Reading and parsing your 174 documents automatically... Please wait."):
     quotes_database, total_records = process_all_files(FOLDER_PATH)
 
 if not quotes_database:
     st.error(f"Could not find any HTML files in {FOLDER_PATH}. Please check your folder structure.")
     st.stop()
+
 import time  # Make sure this is imported to handle the 2-second delay
 
 # 1. Create an empty container placeholder
