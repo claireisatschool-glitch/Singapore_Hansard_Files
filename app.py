@@ -423,7 +423,7 @@ def process_all_files(folder_path):
 # Run parser automatically from the folder path
 FOLDER_PATH = "./hansard_files"
 
-with st.spinner(" Reading and parsing your 174 documents automatically... Please wait."):
+with st.spinner(" Reading and parsing your 173 documents automatically... Please wait."):
     quotes_database, total_records = process_all_files(FOLDER_PATH)
 
 if not quotes_database:
